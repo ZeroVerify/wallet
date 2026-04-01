@@ -1,0 +1,9 @@
+export const KEYCLOAK_BASE = "https://keycloak.zeroverify.net";
+export const KEYCLOAK_REALM = "zeroverify";
+export const CLIENT_ID = "zeroverify-wallet";
+export const REDIRECT_URI = "https://wallet.zeroverify.net/callback";
+export const API_BASE = "https://gw.api.zeroverify.net";
+export const ISSUE_URL = `${API_BASE}/api/v1/credentials/issue`;
+export const REVOKE_URL = `${API_BASE}/api/v1/credentials/revoke`;
+export const ARTIFACTS_BASE_URL = "https://artifacts.zeroverify.net";
+export const ISSUER_PUBLIC_KEY_URL = `${ARTIFACTS_BASE_URL}/issuer/public_key.json`;
