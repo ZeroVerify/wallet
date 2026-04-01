@@ -15,8 +15,10 @@
     "**/*": "prettier --write --ignore-unknown"
   },
   "dependencies": {
+    "neverthrow": "^8.2.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "snarkjs": "^0.7.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
