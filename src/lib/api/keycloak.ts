@@ -41,21 +41,29 @@ async function generatePKCE(): Promise<PKCEPair> {
 export interface AuthRequest {
   url: string;
   codeVerifier: string;
+  state: string; // added this part as security parameter to prevent Cross Site Request Forgery attack, can remove if you think we dont need it
 }
 
 export async function createAuthRequest(idp: IdP): Promise<AuthRequest> {
   const { codeVerifier, codeChallenge } = await generatePKCE();
+
+  const stateArray = crypto.getRandomValues(new Uint8Array(16));
+  const state = btoa(String.fromCharCode(...stateArray))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     response_type: "code",
     redirect_uri: REDIRECT_URI,
     scope: "openid",
+    state,
     code_challenge: codeChallenge,
     code_challenge_method: "S256",
     kc_idp_hint: idp.id,
   });
 
   const url = `${KEYCLOAK_BASE}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth?${params}`;
-  return { url, codeVerifier };
+  return { url, codeVerifier, state };
 }
