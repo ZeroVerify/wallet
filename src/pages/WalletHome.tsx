@@ -1,35 +1,33 @@
 import { useState, useEffect } from "react";
 import { PassphraseGate } from "../components/PassphraseGate";
-import { isUnlocked, getSessionKey } from "../lib/session";
+import { useWallet } from "../context/useWallet";
 import { createAuthRequest, SUPPORTED_IDPS } from "@lib/api/keycloak";
 import { getAllCredentials } from "@lib/credential-store";
 import type { VerifiableCredential } from "@lib/types";
 
 export function WalletHome() {
-  const [unlocked, setUnlocked] = useState(isUnlocked());
+  const { key } = useWallet();
   const [credentials, setCredentials] = useState<VerifiableCredential[]>([]);
-  const [loading, setLoading] = useState(isUnlocked());
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!unlocked) return;
+  const loading = key !== null && !loaded;
 
-    const key = getSessionKey();
+  useEffect(() => {
     if (!key) return;
 
     let cancelled = false;
 
     getAllCredentials(key).then((result) => {
       if (cancelled) return;
-
       result.match(
         (creds) => {
           setCredentials(creds);
-          setLoading(false);
+          setLoaded(true);
         },
         (err) => {
           setError(`Failed to load credentials: ${err.message}`);
-          setLoading(false);
+          setLoaded(true);
         },
       );
     });
@@ -37,18 +35,22 @@ export function WalletHome() {
     return () => {
       cancelled = true;
     };
-  }, [unlocked]);
+  }, [key]);
 
-  if (!unlocked) {
-    return <PassphraseGate onUnlock={() => setUnlocked(true)} />;
+  if (!key) {
+    return <PassphraseGate />;
   }
 
   async function handleGetCredential() {
-    const idp = SUPPORTED_IDPS[0];
-    const { url, codeVerifier, state } = await createAuthRequest(idp);
-    sessionStorage.setItem("pkce_verifier", codeVerifier);
-    sessionStorage.setItem("oauth_state", state);
-    window.location.href = url;
+    try {
+      const idp = SUPPORTED_IDPS[0];
+      const { url, codeVerifier, state } = await createAuthRequest(idp);
+      sessionStorage.setItem("pkce_verifier", codeVerifier);
+      sessionStorage.setItem("oauth_state", state);
+      window.location.href = url;
+    } catch {
+      setError("Failed to start authentication. Please try again.");
+    }
   }
 
   return (

@@ -41,7 +41,7 @@ async function generatePKCE(): Promise<PKCEPair> {
 export interface AuthRequest {
   url: string;
   codeVerifier: string;
-  state: string; // added this part as security parameter to prevent Cross Site Request Forgery attack, can remove if you think we dont need it
+  state: string;
 }
 
 export async function createAuthRequest(idp: IdP): Promise<AuthRequest> {
