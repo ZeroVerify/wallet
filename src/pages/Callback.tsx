@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { issueCredential } from "@lib/api/issuance";
-import { getSessionKey } from "../lib/session";
+import { useWallet } from "../context/useWallet";
 import { storeCredential } from "@lib/credential-store";
+import { PassphraseGate } from "../components/PassphraseGate";
 
 function getErrorMessage(status: number | undefined): string {
   switch (status) {
@@ -21,6 +22,7 @@ function getErrorMessage(status: number | undefined): string {
 
 export function Callback() {
   const navigate = useNavigate();
+  const { key } = useWallet();
   const [error, setError] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthError = params.get("error");
@@ -44,7 +46,7 @@ export function Callback() {
   });
 
   useEffect(() => {
-    if (error) return;
+    if (error || !key) return;
 
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
@@ -55,29 +57,29 @@ export function Callback() {
     sessionStorage.removeItem("oauth_state");
     sessionStorage.removeItem("pkce_verifier");
 
-    const key = getSessionKey();
-    if (!key) {
-      navigate("/", {
-        state: { pendingCode: code, pendingVerifier: verifier },
-      });
-      return;
-    }
+    let cancelled = false;
 
-    issueCredential(code, verifier).then((result) =>
+    issueCredential(code, verifier).then((result) => {
+      if (cancelled) return;
       result.match(
         (credential) => {
-          storeCredential(credential, key).then((storeResult) =>
+          storeCredential(credential, key).then((storeResult) => {
+            if (cancelled) return;
             storeResult.match(
               () => navigate("/"),
               (storeErr) =>
                 setError(`Failed to store credential: ${storeErr.message}`),
-            ),
-          );
+            );
+          });
         },
         (err) => setError(getErrorMessage(err.status)),
-      ),
-    );
-  }, [navigate, error]);
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate, error, key]);
 
   if (error) {
     return (
@@ -87,6 +89,10 @@ export function Callback() {
         <button onClick={() => navigate("/")}>Go back</button>
       </div>
     );
+  }
+
+  if (!key) {
+    return <PassphraseGate />;
   }
 
   return (

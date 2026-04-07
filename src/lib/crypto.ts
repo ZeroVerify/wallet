@@ -9,6 +9,33 @@ export interface EncryptedData {
   iv: Uint8Array<ArrayBuffer>;
 }
 
+export function deriveKey(
+  passphrase: string,
+  salt: Uint8Array<ArrayBuffer>,
+): ResultAsync<CryptoKey, CryptoError> {
+  return ResultAsync.fromPromise(
+    (async () => {
+      const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(passphrase),
+        "PBKDF2",
+        false,
+        ["deriveKey"],
+      );
+      return crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt, iterations: 310_000, hash: "SHA-256" },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"],
+      );
+    })(),
+    (e) => ({
+      message: e instanceof Error ? e.message : "Key derivation failed",
+    }),
+  );
+}
+
 export function encrypt(
   key: CryptoKey,
   data: string,

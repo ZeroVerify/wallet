@@ -1,4 +1,4 @@
-import { ResultAsync } from "neverthrow";
+import { ok, err, ResultAsync } from "neverthrow";
 import type { VerifiableCredential } from "@lib/types";
 import { encrypt, decrypt, type EncryptedData } from "@lib/crypto";
 
@@ -9,12 +9,12 @@ export interface CredentialStoreError {
 const DB_NAME = "zeroverify-wallet";
 const DB_VERSION = 1;
 const STORE_NAME = "credentials";
+const METADATA_STORE_NAME = "metadata";
 
 interface StoredCredential {
   id: string;
   ciphertext: ArrayBuffer;
   iv: ArrayBuffer;
-  encrypted: boolean;
   stored_at: string;
 }
 
@@ -32,6 +32,9 @@ function openDatabase(): ResultAsync<IDBDatabase, CredentialStoreError> {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
           store.createIndex("stored_at", "stored_at", { unique: false });
+        }
+        if (!db.objectStoreNames.contains(METADATA_STORE_NAME)) {
+          db.createObjectStore(METADATA_STORE_NAME, { keyPath: "key" });
         }
       };
     }),
@@ -64,7 +67,6 @@ export function storeCredential(
               id: credential.id,
               ciphertext: encrypted.ciphertext,
               iv: encrypted.iv.buffer as ArrayBuffer,
-              encrypted: true,
               stored_at: new Date().toISOString(),
             };
 
@@ -118,12 +120,20 @@ export function getAllCredentials(
           iv: new Uint8Array(item.iv),
         };
         return decrypt(key, encryptedData)
-          .map((json) => JSON.parse(json) as VerifiableCredential)
           .mapErr(
             (e): CredentialStoreError => ({
               message: `Decryption failed: ${e.message}`,
             }),
-          );
+          )
+          .andThen((json) => {
+            try {
+              return ok(JSON.parse(json) as VerifiableCredential);
+            } catch {
+              return err<VerifiableCredential, CredentialStoreError>({
+                message: "Failed to parse credential data",
+              });
+            }
+          });
       });
 
       return ResultAsync.combine(decryptPromises);
@@ -166,12 +176,20 @@ export function getCredential(
       };
 
       return decrypt(key, encryptedData)
-        .map((json) => JSON.parse(json) as VerifiableCredential)
         .mapErr(
           (e): CredentialStoreError => ({
             message: `Decryption failed: ${e.message}`,
           }),
-        );
+        )
+        .andThen((json) => {
+          try {
+            return ok(JSON.parse(json) as VerifiableCredential);
+          } catch {
+            return err<VerifiableCredential, CredentialStoreError>({
+              message: "Failed to parse credential data",
+            });
+          }
+        });
     }),
   );
 }
@@ -198,6 +216,55 @@ export function deleteCredential(
       }),
       (e) => ({
         message: e instanceof Error ? e.message : "Deletion error",
+      }),
+    ),
+  );
+}
+
+export function getOrCreateSalt(): ResultAsync<
+  Uint8Array<ArrayBuffer>,
+  CredentialStoreError
+> {
+  return openDatabase().andThen((db) =>
+    ResultAsync.fromPromise(
+      new Promise<Uint8Array<ArrayBuffer>>((resolve, reject) => {
+        const transaction = db.transaction([METADATA_STORE_NAME], "readwrite");
+        const store = transaction.objectStore(METADATA_STORE_NAME);
+        const getRequest = store.get("pbkdf2_salt");
+
+        getRequest.onsuccess = () => {
+          if (getRequest.result) {
+            db.close();
+            resolve(new Uint8Array(getRequest.result.value as ArrayBuffer));
+            return;
+          }
+
+          const salt = crypto.getRandomValues(
+            new Uint8Array(16) as Uint8Array<ArrayBuffer>,
+          );
+          const putRequest = store.put({
+            key: "pbkdf2_salt",
+            value: salt.buffer,
+          });
+
+          putRequest.onsuccess = () => {
+            db.close();
+            resolve(salt);
+          };
+
+          putRequest.onerror = () => {
+            db.close();
+            reject(new Error("Failed to store salt"));
+          };
+        };
+
+        getRequest.onerror = () => {
+          db.close();
+          reject(new Error("Failed to retrieve salt"));
+        };
+      }),
+      (e) => ({
+        message: e instanceof Error ? e.message : "Salt error",
       }),
     ),
   );

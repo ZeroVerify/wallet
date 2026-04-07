@@ -1,30 +1,10 @@
 import { useState } from "react";
-import { setSessionKey } from "../lib/session";
+import { deriveKey } from "@lib/crypto";
+import { getOrCreateSalt } from "@lib/credential-store";
+import { useWallet } from "../context/useWallet";
 
-interface Props {
-  onUnlock: () => void;
-}
-
-async function deriveKey(passphrase: string): Promise<CryptoKey> {
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(passphrase),
-    "PBKDF2",
-    false,
-    ["deriveKey"],
-  );
-
-  const salt = new TextEncoder().encode("#4 placeholder-salt"); //will replaced one #4 is done
-  return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 310_000, hash: "SHA-256" },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"],
-  );
-}
-
-export function PassphraseGate({ onUnlock }: Props) {
+export function PassphraseGate() {
+  const { unlock } = useWallet();
   const [passphrase, setPassphrase] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -33,15 +13,17 @@ export function PassphraseGate({ onUnlock }: Props) {
     if (!passphrase) return;
     setLoading(true);
     setError(null);
-    try {
-      const key = await deriveKey(passphrase);
-      setSessionKey(key);
-      onUnlock();
-    } catch {
-      setError("Failed to unlock wallet. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+
+    const result = await getOrCreateSalt().andThen((salt) =>
+      deriveKey(passphrase, salt),
+    );
+
+    result.match(
+      (key) => unlock(key),
+      () => setError("Failed to unlock wallet. Please try again."),
+    );
+
+    setLoading(false);
   }
 
   return (
