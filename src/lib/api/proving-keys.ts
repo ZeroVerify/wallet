@@ -26,12 +26,12 @@ export function fetchZkey(
   const cacheKey = `zkey_${proofType}`;
   const cached = cache.get(cacheKey);
   if (cached) return ResultAsync.fromSafePromise(Promise.resolve(cached));
-  return fetchBinary(`${ARTIFACTS_BASE_URL}/${proofType}/circuit.zkey`).map(
-    (buf) => {
-      cache.set(cacheKey, buf);
-      return buf;
-    },
-  );
+  return fetchBinary(
+    `${ARTIFACTS_BASE_URL}/circuit/${proofType}/proving_key.zkey`,
+  ).map((buf) => {
+    cache.set(cacheKey, buf);
+    return buf;
+  });
 }
 
 export function fetchWasm(
@@ -40,10 +40,10 @@ export function fetchWasm(
   const cacheKey = `wasm_${proofType}`;
   const cached = cache.get(cacheKey);
   if (cached) return ResultAsync.fromSafePromise(Promise.resolve(cached));
-  return fetchBinary(`${ARTIFACTS_BASE_URL}/${proofType}/circuit.wasm`).map(
-    (buf) => {
-      cache.set(cacheKey, buf);
-      return buf;
-    },
-  );
+  return fetchBinary(
+    `${ARTIFACTS_BASE_URL}/circuit/${proofType}/circuit.wasm`,
+  ).map((buf) => {
+    cache.set(cacheKey, buf);
+    return buf;
+  });
 }
