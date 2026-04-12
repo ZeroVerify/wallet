@@ -8,10 +8,12 @@ import {
 import { PassphraseGate } from "../components/PassphraseGate";
 import { useWallet } from "../context/useWallet";
 
+type Stage = "generating" | "submitting" | null;
+
 export function Prove() {
   const navigate = useNavigate();
   const { key } = useWallet();
-  const [proving, setProving] = useState(false);
+  const [stage, setStage] = useState<Stage>(null);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [declined, setDeclined] = useState(false);
@@ -45,8 +47,18 @@ export function Prove() {
   if (done) {
     return (
       <div style={{ padding: "2rem", maxWidth: "480px", margin: "0 auto" }}>
-        <h2>Proof Submitted</h2>
-        <p>Your proof was successfully sent to {request.verifier_id}.</p>
+        <h2>Verification Accepted</h2>
+        <p>Your proof was successfully verified by {request.verifier_id}.</p>
+        <button onClick={() => navigate("/")}>Go to Wallet</button>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: "2rem", maxWidth: "480px", margin: "0 auto" }}>
+        <h2>Verification Failed</h2>
+        <p style={{ color: "red" }}>{error}</p>
         <button onClick={() => navigate("/")}>Go to Wallet</button>
       </div>
     );
@@ -54,18 +66,26 @@ export function Prove() {
 
   async function handleApprove() {
     if (!key || !request) return;
-    setProving(true);
     setError(null);
 
-    const result = await generateProof(request, key).andThen((proof) =>
-      submitProofToVerifier(proof, request.callback),
-    );
+    setStage("generating");
+    const proofResult = await generateProof(request, key);
+    if (proofResult.isErr()) {
+      setError(proofResult.error.message);
+      setStage(null);
+      return;
+    }
 
-    result.match(
+    setStage("submitting");
+    const submitResult = await submitProofToVerifier(
+      proofResult.value,
+      request.callback,
+    );
+    submitResult.match(
       () => setDone(true),
       (err) => setError(err.message),
     );
-    setProving(false);
+    setStage(null);
   }
 
   return (
@@ -94,14 +114,18 @@ export function Prove() {
         Approving will generate a zero-knowledge proof. No personal data will be
         shared — only proof that you meet the requirement.
       </p>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      {proving && <p>Generating proof…</p>}
+      {stage === "generating" && <p>Generating proof…</p>}
+      {stage === "submitting" && <p>Submitting proof…</p>}
       <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-        <button onClick={() => setDeclined(true)} disabled={proving}>
+        <button onClick={() => setDeclined(true)} disabled={stage !== null}>
           Decline
         </button>
-        <button onClick={handleApprove} disabled={proving}>
-          {proving ? "Generating…" : "Approve"}
+        <button onClick={handleApprove} disabled={stage !== null}>
+          {stage === "generating"
+            ? "Generating…"
+            : stage === "submitting"
+              ? "Submitting…"
+              : "Approve"}
         </button>
       </div>
     </div>
