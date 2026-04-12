@@ -109,10 +109,15 @@ export function submitProofToVerifier(
         "X-ZeroVerify-Version": "1.0",
       },
       body: JSON.stringify(proof),
-    }).then((res) => {
-      if (!res.ok)
-        throw new Error(`Verifier rejected proof: ${res.statusText}`);
     }),
-    (e) => ({ message: e instanceof Error ? e.message : "Network error" }),
-  );
+    (): ProofError => ({
+      message: "Could not reach verifier, check your connection",
+    }),
+  ).andThen((res) => {
+    if (!res.ok)
+      return errAsync({
+        message: `Verifier rejected proof: ${res.statusText}`,
+      });
+    return okAsync(undefined);
+  });
 }
