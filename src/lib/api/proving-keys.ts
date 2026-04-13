@@ -1,5 +1,4 @@
 import { ResultAsync } from "neverthrow";
-import { LocalStorageCache, binarySerializer } from "@lib/cache";
 import { ARTIFACTS_BASE_URL } from "@lib/api/config";
 import type { ProofType } from "@lib/types";
 
@@ -7,8 +6,7 @@ export interface ProvingKeyError {
   message: string;
 }
 
-const TTL_MS = 5 * 60 * 1000;
-const cache = new LocalStorageCache<ArrayBuffer>(TTL_MS, binarySerializer);
+const cache = new Map<string, ArrayBuffer>();
 
 function fetchBinary(url: string): ResultAsync<ArrayBuffer, ProvingKeyError> {
   return ResultAsync.fromPromise(
