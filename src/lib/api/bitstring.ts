@@ -6,9 +6,10 @@ export interface BitstringError {
 
 export function fetchBitstring(
   url: string,
+  signal?: AbortSignal,
 ): ResultAsync<Uint8Array, BitstringError> {
   return ResultAsync.fromPromise(
-    fetch(url)
+    fetch(url, { signal })
       .then((res) => {
         if (!res.ok)
           throw new Error(

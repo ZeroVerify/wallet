@@ -19,17 +19,41 @@ function checkBit(bitstring: Uint8Array, index: number): boolean {
   return ((bitstring[byteIndex] >> bitPos) & 1) === 1;
 }
 
-async function resolveStatus(
-  cred: VerifiableCredential,
-): Promise<CredentialStatus> {
-  const bitstringResult = await fetchBitstring(
-    cred.credentialStatus.statusListCredential,
+async function resolveRevocationStatuses(
+  creds: VerifiableCredential[],
+  signal: AbortSignal,
+): Promise<Map<string, CredentialStatus>> {
+  const byUrl = new Map<string, VerifiableCredential[]>();
+  for (const cred of creds) {
+    const url = cred.credentialStatus.statusListCredential;
+    const group = byUrl.get(url) ?? [];
+    group.push(cred);
+    byUrl.set(url, group);
+  }
+
+  const result = new Map<string, CredentialStatus>();
+
+  await Promise.all(
+    Array.from(byUrl.entries()).map(async ([url, group]) => {
+      const bitstringResult = await fetchBitstring(url, signal);
+      for (const cred of group) {
+        const index = parseInt(cred.credentialStatus.statusListIndex, 10);
+        result.set(
+          cred.id,
+          bitstringResult.match(
+            (bitstring) => {
+              if (checkBit(bitstring, index)) return "revoked";
+              if (new Date(cred.expirationDate) < new Date()) return "expired";
+              return "active";
+            },
+            () => "unavailable",
+          ),
+        );
+      }
+    }),
   );
-  if (bitstringResult.isErr()) return "unavailable";
-  const index = parseInt(cred.credentialStatus.statusListIndex, 10);
-  if (checkBit(bitstringResult.value, index)) return "revoked";
-  if (new Date(cred.expirationDate) < new Date()) return "expired";
-  return "active";
+
+  return result;
 }
 
 const STATUS_STYLES: Record<
@@ -92,26 +116,22 @@ export function WalletHome() {
   useEffect(() => {
     if (!key) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
 
     getAllCredentials(key).then((result) => {
-      if (cancelled) return;
+      if (controller.signal.aborted) return;
       result.match(
         (creds) => {
           setCredentials(creds);
           setLoaded(true);
+          setStatuses(new Map(creds.map((c) => [c.id, "loading"])));
 
-          const initial = new Map<string, CredentialStatus>(
-            creds.map((c) => [c.id, "loading"]),
+          resolveRevocationStatuses(creds, controller.signal).then(
+            (resolved) => {
+              if (controller.signal.aborted) return;
+              setStatuses(resolved);
+            },
           );
-          setStatuses(initial);
-
-          creds.forEach((cred) => {
-            resolveStatus(cred).then((status) => {
-              if (cancelled) return;
-              setStatuses((prev) => new Map(prev).set(cred.id, status));
-            });
-          });
         },
         (err) => {
           setError(`Failed to load credentials: ${err.message}`);
@@ -121,7 +141,7 @@ export function WalletHome() {
     });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [key]);
 
