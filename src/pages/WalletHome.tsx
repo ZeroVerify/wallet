@@ -4,6 +4,8 @@ import { useWallet } from "../context/useWallet";
 import { createAuthRequest, SUPPORTED_IDPS } from "@lib/api/keycloak";
 import { getAllCredentials } from "@lib/credential-store";
 import { fetchBitstring } from "@lib/api/bitstring";
+import { generateRevocationProof } from "@lib/revocation-proof";
+import { revokeCredential } from "@lib/api/revocation";
 import type { VerifiableCredential } from "@lib/types";
 
 type CredentialStatus =
@@ -108,6 +110,7 @@ export function WalletHome() {
   const [statuses, setStatuses] = useState<Map<string, CredentialStatus>>(
     new Map(),
   );
+  const [revoking, setRevoking] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -147,6 +150,32 @@ export function WalletHome() {
 
   if (!key) {
     return <PassphraseGate />;
+  }
+
+  async function handleRevoke(credential: VerifiableCredential) {
+    if (!key) return;
+    setRevoking((prev) => new Set(prev).add(credential.id));
+    setError(null);
+
+    const credentialID = credential.id.replace("urn:uuid:", "");
+    const subjectID = credential.credentialSubject.id;
+
+    const result = await generateRevocationProof(credential).andThen((proof) =>
+      revokeCredential(subjectID, credentialID, proof),
+    );
+
+    result.match(
+      () => {
+        setStatuses((prev) => new Map(prev).set(credential.id, "revoked"));
+      },
+      (err) => setError(err.message),
+    );
+
+    setRevoking((prev) => {
+      const next = new Set(prev);
+      next.delete(credential.id);
+      return next;
+    });
   }
 
   async function handleGetCredential() {
@@ -208,6 +237,15 @@ export function WalletHome() {
                   <strong>Expires:</strong>{" "}
                   {new Date(cred.expirationDate).toLocaleDateString()}
                 </p>
+                {status === "active" && (
+                  <button
+                    onClick={() => handleRevoke(cred)}
+                    disabled={revoking.has(cred.id)}
+                    style={{ marginTop: "0.75rem" }}
+                  >
+                    {revoking.has(cred.id) ? "Revoking…" : "Revoke"}
+                  </button>
+                )}
               </div>
             );
           })}

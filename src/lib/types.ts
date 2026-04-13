@@ -19,6 +19,7 @@ export interface CredentialProof {
   verificationMethod: string;
   proofPurpose: string;
   fieldSignatures: Record<string, string>;
+  circuitSignatures: Record<string, string>;
 }
 
 export interface VerifiableCredential {
@@ -35,6 +36,7 @@ export interface VerifiableCredential {
 
 export const ProofType = {
   StudentStatus: "student_status",
+  CredentialRevocation: "credential_revocation",
 } as const;
 
 export type ProofType = (typeof ProofType)[keyof typeof ProofType];
