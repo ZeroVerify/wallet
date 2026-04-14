@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { PassphraseGate } from "../components/PassphraseGate";
 import { useWallet } from "../context/useWallet";
 import { createAuthRequest, SUPPORTED_IDPS } from "@lib/api/keycloak";
@@ -7,6 +8,16 @@ import { fetchBitstring } from "@lib/api/bitstring";
 import { generateRevocationProof } from "@lib/revocation-proof";
 import { revokeCredential } from "@lib/api/revocation";
 import type { VerifiableCredential } from "@lib/types";
+
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import {
+  CheckCircle,
+  XCircle,
+  Calendar,
+  Building,
+  AlertCircle,
+} from "lucide-react";
 
 type CredentialStatus =
   | "loading"
@@ -26,6 +37,7 @@ async function resolveRevocationStatuses(
   signal: AbortSignal,
 ): Promise<Map<string, CredentialStatus>> {
   const byUrl = new Map<string, VerifiableCredential[]>();
+
   for (const cred of creds) {
     const url = cred.credentialStatus.statusListCredential;
     const group = byUrl.get(url) ?? [];
@@ -38,8 +50,10 @@ async function resolveRevocationStatuses(
   await Promise.all(
     Array.from(byUrl.entries()).map(async ([url, group]) => {
       const bitstringResult = await fetchBitstring(url, signal);
+
       for (const cred of group) {
         const index = parseInt(cred.credentialStatus.statusListIndex, 10);
+
         result.set(
           cred.id,
           bitstringResult.match(
@@ -58,37 +72,6 @@ async function resolveRevocationStatuses(
   return result;
 }
 
-const STATUS_STYLES: Record<
-  CredentialStatus,
-  { label: string; color: string; bg: string }
-> = {
-  loading: { label: "Checking...", color: "#888", bg: "#f0f0f0" },
-  active: { label: "Active", color: "#fff", bg: "#22863a" },
-  revoked: { label: "Revoked", color: "#fff", bg: "#cb2431" },
-  expired: { label: "Expired", color: "#fff", bg: "#b08800" },
-  unavailable: { label: "Status unavailable", color: "#888", bg: "#e0e0e0" },
-};
-
-function StatusBadge({ status }: { status: CredentialStatus }) {
-  const s = STATUS_STYLES[status];
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "2px 10px",
-        borderRadius: "12px",
-        fontSize: "0.78rem",
-        fontWeight: 600,
-        letterSpacing: "0.04em",
-        color: s.color,
-        backgroundColor: s.bg,
-      }}
-    >
-      {s.label}
-    </span>
-  );
-}
-
 function credentialLabel(type: string[]): string {
   const meaningful = type.filter((t) => t !== "VerifiableCredential");
   return meaningful.length > 0
@@ -104,8 +87,53 @@ function issuerLabel(issuer: string): string {
   }
 }
 
+function StatusBadge({ status }: { status: CredentialStatus }) {
+  if (status === "loading") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+        Checking...
+      </span>
+    );
+  }
+
+  if (status === "active") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <CheckCircle className="size-3" />
+        Active
+      </span>
+    );
+  }
+
+  if (status === "revoked") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        <XCircle className="size-3" />
+        Revoked
+      </span>
+    );
+  }
+
+  if (status === "expired") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+        <AlertCircle className="size-3" />
+        Expired
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+      Status unavailable
+    </span>
+  );
+}
+
 export function WalletHome() {
+  const navigate = useNavigate();
   const { key } = useWallet();
+
   const [credentials, setCredentials] = useState<VerifiableCredential[]>([]);
   const [statuses, setStatuses] = useState<Map<string, CredentialStatus>>(
     new Map(),
@@ -115,6 +143,7 @@ export function WalletHome() {
   const [error, setError] = useState<string | null>(null);
 
   const loading = key !== null && !loaded;
+  const hasCredentials = credentials.length > 0;
 
   useEffect(() => {
     if (!key) return;
@@ -123,11 +152,14 @@ export function WalletHome() {
 
     getAllCredentials(key).then((result) => {
       if (controller.signal.aborted) return;
+
       result.match(
         (creds) => {
           setCredentials(creds);
           setLoaded(true);
-          setStatuses(new Map(creds.map((c) => [c.id, "loading"])));
+          setStatuses(
+            new Map(creds.map((c) => [c.id, "loading" as CredentialStatus])),
+          );
 
           resolveRevocationStatuses(creds, controller.signal).then(
             (resolved) => {
@@ -154,6 +186,7 @@ export function WalletHome() {
 
   async function handleRevoke(credential: VerifiableCredential) {
     if (!key) return;
+
     setRevoking((prev) => new Set(prev).add(credential.id));
     setError(null);
 
@@ -191,72 +224,119 @@ export function WalletHome() {
   }
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "480px", margin: "0 auto" }}>
-      <h1>ZeroVerify Wallet</h1>
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      {loading ? (
-        <p>Loading credentials...</p>
-      ) : credentials.length > 0 ? (
-        <div>
-          <h2>Your Credentials</h2>
-          {credentials.map((cred) => {
-            const status = statuses.get(cred.id) ?? "loading";
-            return (
-              <div
-                key={cred.id}
-                style={{
-                  border: "1px solid #ccc",
-                  borderRadius: "4px",
-                  padding: "1rem",
-                  marginBottom: "1rem",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    marginBottom: "0.5rem",
-                  }}
-                >
-                  <strong style={{ fontSize: "1rem" }}>
-                    {credentialLabel(cred.type)}
-                  </strong>
-                  <StatusBadge status={status} />
-                </div>
-                <p style={{ margin: "0.25rem 0" }}>
-                  <strong>Institution:</strong> {issuerLabel(cred.issuer)}
-                </p>
-                <p style={{ margin: "0.25rem 0" }}>
-                  <strong>Issued:</strong>{" "}
-                  {new Date(cred.issuanceDate).toLocaleDateString()}
-                </p>
-                <p style={{ margin: "0.25rem 0" }}>
-                  <strong>Expires:</strong>{" "}
-                  {new Date(cred.expirationDate).toLocaleDateString()}
-                </p>
-                {status === "active" && (
-                  <button
-                    onClick={() => handleRevoke(cred)}
-                    disabled={revoking.has(cred.id)}
-                    style={{ marginTop: "0.75rem" }}
-                  >
-                    {revoking.has(cred.id) ? "Revoking…" : "Revoke"}
-                  </button>
-                )}
-              </div>
-            );
-          })}
+    <div className="min-h-[calc(100vh-145px)] bg-white">
+      <div className="max-w-4xl mx-auto px-8 py-16">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-4xl font-bold text-gray-900">
+            ZeroVerify Wallet
+          </h1>
+          {hasCredentials && (
+            <Button
+              onClick={handleGetCredential}
+              className="zeroverify-gradient hover:opacity-90 text-white"
+            >
+              Get Credential
+            </Button>
+          )}
         </div>
-      ) : (
-        <p>No credentials found. Get one to get started!</p>
-      )}
 
-      <button onClick={handleGetCredential} style={{ marginTop: "1rem" }}>
-        Get Credential
-      </button>
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <p className="text-gray-600">Loading credentials...</p>
+        ) : !hasCredentials ? (
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center size-20 rounded-full bg-gray-100 mb-6">
+              <Building className="size-10 text-gray-400" />
+            </div>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+              No credentials found.
+            </h2>
+            <p className="text-base text-gray-600 mb-8">
+              Get one to get started!
+            </p>
+            <Button
+              onClick={handleGetCredential}
+              size="lg"
+              className="zeroverify-gradient hover:opacity-90 text-white"
+            >
+              Get Credential
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {credentials.map((cred) => {
+              const status = statuses.get(cred.id) ?? "loading";
+
+              return (
+                <Card
+                  key={cred.id}
+                  className="p-6 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          {credentialLabel(cred.type)}
+                        </h3>
+                        <StatusBadge status={status} />
+                      </div>
+
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <Building className="size-4" />
+                          <span>Issued by: {issuerLabel(cred.issuer)}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Calendar className="size-4" />
+                          <span>
+                            Issued on:{" "}
+                            {new Date(cred.issuanceDate).toLocaleDateString()}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Calendar className="size-4" />
+                          <span>
+                            Expires on:{" "}
+                            {new Date(cred.expirationDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate("/consent")}
+                      >
+                        Share Proof
+                      </Button>
+
+                      {status === "active" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRevoke(cred)}
+                          disabled={revoking.has(cred.id)}
+                        >
+                          {revoking.has(cred.id) ? "Revoking…" : "Revoke"}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
