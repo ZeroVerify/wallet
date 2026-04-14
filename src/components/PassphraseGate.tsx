@@ -2,6 +2,9 @@ import { useState } from "react";
 import { deriveKey } from "@lib/crypto";
 import { getOrCreateSalt } from "@lib/credential-store";
 import { useWallet } from "../context/useWallet";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { LockKeyhole } from "lucide-react";
 
 export function PassphraseGate() {
   const { unlock } = useWallet();
@@ -27,21 +30,51 @@ export function PassphraseGate() {
   }
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "360px", margin: "4rem auto" }}>
-      <h2>Unlock Wallet</h2>
-      <p>Enter your passphrase to continue.</p>
-      <input
-        type="password"
-        value={passphrase}
-        onChange={(e) => setPassphrase(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-        placeholder="Passphrase"
-        style={{ width: "100%", marginBottom: "1rem" }}
-      />
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <button onClick={handleSubmit} disabled={loading}>
-        {loading ? "Unlocking…" : "Unlock"}
-      </button>
+    <div className="min-h-[calc(100vh-145px)] bg-white">
+      <div className="max-w-4xl mx-auto px-8 py-16">
+        <div className="flex justify-center">
+          <Card className="w-full max-w-md p-8 shadow-sm">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center size-16 rounded-full bg-gray-100 mb-4">
+                <LockKeyhole className="size-8 text-gray-500" />
+              </div>
+
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Unlock Wallet
+              </h1>
+
+              <p className="text-gray-600">
+                Enter your passphrase to continue.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <input
+                type="password"
+                value={passphrase}
+                onChange={(e) => setPassphrase(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                placeholder="Passphrase"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+
+              {error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
+              <Button
+                onClick={handleSubmit}
+                disabled={loading || !passphrase}
+                className="w-full zeroverify-gradient hover:opacity-90 text-white"
+              >
+                {loading ? "Unlocking…" : "Unlock"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

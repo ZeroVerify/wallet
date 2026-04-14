@@ -4,6 +4,9 @@ import { issueCredential } from "@lib/api/issuance";
 import { useWallet } from "../context/useWallet";
 import { storeCredential } from "@lib/credential-store";
 import { PassphraseGate } from "../components/PassphraseGate";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { AlertCircle, LoaderCircle } from "lucide-react";
 
 function getErrorMessage(status: number | undefined): string {
   switch (status) {
@@ -83,10 +86,31 @@ export function Callback() {
 
   if (error) {
     return (
-      <div style={{ padding: "2rem", maxWidth: "480px", margin: "0 auto" }}>
-        <h2>Something went wrong</h2>
-        <p>{error}</p>
-        <button onClick={() => navigate("/")}>Go back</button>
+      <div className="min-h-[calc(100vh-145px)] bg-white">
+        <div className="max-w-4xl mx-auto px-8 py-16">
+          <div className="flex justify-center">
+            <Card className="w-full max-w-md p-8 shadow-sm">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center size-16 rounded-full bg-red-50 mb-4">
+                  <AlertCircle className="size-8 text-red-500" />
+                </div>
+
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  Something went wrong
+                </h1>
+
+                <p className="text-gray-600 mb-6">{error}</p>
+
+                <Button
+                  onClick={() => navigate("/")}
+                  className="w-full zeroverify-gradient hover:opacity-90 text-white"
+                >
+                  Go back
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -96,8 +120,26 @@ export function Callback() {
   }
 
   return (
-    <div style={{ padding: "2rem", textAlign: "center" }}>
-      <p>Completing sign-in…</p>
+    <div className="min-h-[calc(100vh-145px)] bg-white">
+      <div className="max-w-4xl mx-auto px-8 py-16">
+        <div className="flex justify-center">
+          <Card className="w-full max-w-md p-8 shadow-sm">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center size-16 rounded-full bg-gray-100 mb-4">
+                <LoaderCircle className="size-8 text-gray-500 animate-spin" />
+              </div>
+
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Completing sign-in
+              </h1>
+
+              <p className="text-gray-600">
+                Please wait while we issue and store your credential.
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
