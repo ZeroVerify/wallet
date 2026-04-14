@@ -1,20 +1,78 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { WalletProvider } from "./context/WalletProvider";
-import { Callback } from "./pages/Callback";
+import { RouterProvider, createBrowserRouter, Navigate } from "react-router";
+import { Landing } from "./pages/Landing";
 import { WalletHome } from "./pages/WalletHome";
+import { Callback } from "./pages/Callback";
 import { Prove } from "./pages/Prove";
+import { Mission } from "./pages/Mission";
+import { ContactUs } from "./pages/ContactUs";
+import { Header } from "./components/Header";
+import { Footer } from "./components/Footer";
 
-function App() {
+function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <WalletProvider>
-      <Routes>
-        <Route path="/" element={<WalletHome />} />
-        <Route path="/callback" element={<Callback />} />
-        <Route path="/prove" element={<Prove />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </WalletProvider>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header />
+      <main className="flex-1">{children}</main>
+      <Footer />
+    </div>
   );
 }
 
-export default App;
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: (
+      <Layout>
+        <Landing />
+      </Layout>
+    ),
+  },
+  {
+    path: "/wallet",
+    element: (
+      <Layout>
+        <WalletHome />
+      </Layout>
+    ),
+  },
+  {
+    path: "/callback",
+    element: (
+      <Layout>
+        <Callback />
+      </Layout>
+    ),
+  },
+  {
+    path: "/prove",
+    element: (
+      <Layout>
+        <Prove />
+      </Layout>
+    ),
+  },
+  {
+    path: "/mission",
+    element: (
+      <Layout>
+        <Mission />
+      </Layout>
+    ),
+  },
+  {
+    path: "/contact",
+    element: (
+      <Layout>
+        <ContactUs />
+      </Layout>
+    ),
+  },
+  {
+    path: "*",
+    element: <Navigate to="/" replace />,
+  },
+]);
+
+export default function App() {
+  return <RouterProvider router={router} />;
+}
