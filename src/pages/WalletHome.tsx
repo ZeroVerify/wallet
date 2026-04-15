@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
+
 import { PassphraseGate } from "../components/PassphraseGate";
 import { useWallet } from "../context/useWallet";
 import { createAuthRequest, SUPPORTED_IDPS } from "@lib/api/keycloak";
@@ -11,6 +12,7 @@ import type { VerifiableCredential } from "@lib/types";
 
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { Modal } from "../components/Modal";
 import {
   CheckCircle,
   XCircle,
@@ -132,8 +134,12 @@ function StatusBadge({ status }: { status: CredentialStatus }) {
 
 export function WalletHome() {
   const navigate = useNavigate();
+  const { state } = useLocation();
   const { key } = useWallet();
 
+  const [showIssuedModal, setShowIssuedModal] = useState(
+    state?.issued === true,
+  );
   const [credentials, setCredentials] = useState<VerifiableCredential[]>([]);
   const [statuses, setStatuses] = useState<Map<string, CredentialStatus>>(
     new Map(),
@@ -225,6 +231,27 @@ export function WalletHome() {
 
   return (
     <div className="min-h-[calc(100vh-145px)] bg-white">
+      {showIssuedModal && (
+        <Modal>
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center size-16 rounded-full bg-green-50 mb-4">
+              <CheckCircle className="size-8 text-green-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Credential issued!
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Your credential has been encrypted and saved to your wallet.
+            </p>
+            <Button
+              onClick={() => setShowIssuedModal(false)}
+              className="w-full zeroverify-gradient hover:opacity-90 text-white"
+            >
+              Done
+            </Button>
+          </div>
+        </Modal>
+      )}
       <div className="max-w-4xl mx-auto px-8 py-16">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-4xl font-bold text-gray-900">

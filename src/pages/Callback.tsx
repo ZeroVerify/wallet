@@ -69,7 +69,7 @@ export function Callback() {
           storeCredential(credential, key).then((storeResult) => {
             if (cancelled) return;
             storeResult.match(
-              () => navigate("/"),
+              () => navigate("/wallet", { state: { issued: true } }),
               (storeErr) =>
                 setError(`Failed to store credential: ${storeErr.message}`),
             );
