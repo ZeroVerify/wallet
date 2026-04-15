@@ -26,7 +26,7 @@ export function deriveKey(
         { name: "PBKDF2", salt, iterations: 310_000, hash: "SHA-256" },
         keyMaterial,
         { name: "AES-GCM", length: 256 },
-        false,
+        true,
         ["encrypt", "decrypt"],
       );
     })(),

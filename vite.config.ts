@@ -11,4 +11,14 @@ export default defineConfig({
       "@lib": resolve(__dirname, "src/lib"),
     },
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/snarkjs")) return "snarkjs";
+          if (id.includes("node_modules/circomlibjs")) return "circomlibjs";
+        },
+      },
+    },
+  },
 });
