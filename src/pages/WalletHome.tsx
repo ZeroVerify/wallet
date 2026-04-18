@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router";
+import { useLocation } from "react-router";
 
 import { PassphraseGate } from "../components/PassphraseGate";
 import { useWallet } from "../context/useWallet";
@@ -133,7 +133,6 @@ function StatusBadge({ status }: { status: CredentialStatus }) {
 }
 
 export function WalletHome() {
-  const navigate = useNavigate();
   const { state } = useLocation();
   const { key } = useWallet();
 
