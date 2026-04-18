@@ -338,14 +338,6 @@ export function WalletHome() {
                     </div>
 
                     <div className="flex gap-2 ml-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate("/consent")}
-                      >
-                        Share Proof
-                      </Button>
-
                       {status === "active" && (
                         <Button
                           variant="outline"

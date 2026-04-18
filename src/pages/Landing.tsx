@@ -38,18 +38,23 @@ export function Landing() {
   return (
     <div className="min-h-[calc(100vh-145px)] bg-white">
       {/* Hero Section */}
-      <div className="max-w-4xl mx-auto px-8 pt-20 pb-16 text-center">
-        <div className="flex justify-center mb-8">
-          <img src={logoImage} alt="ZeroVerify" className="h-[640px]" />
+      <div className="max-w-6xl mx-auto px-8 py-12 flex flex-col md:flex-row items-center gap-8 md:gap-12 min-h-[calc(100vh-88px)]">
+        <div className="flex justify-center md:justify-end md:w-1/2 shrink-0">
+          <img
+            src={logoImage}
+            alt="ZeroVerify"
+            className="h-56 sm:h-72 md:h-80 lg:h-96"
+          />
         </div>
-        <h1 className="text-5xl font-bold text-gray-900 mb-6">
-          Verify student status without exposing personal data
-        </h1>
-        <p className="text-lg text-gray-600 mb-10 max-w-2xl mx-auto">
-          Users authenticate with their university, then share a yes/no proof.
-          No name, no date of birth, no student ID shared—just verified status.
-        </p>
-        <div className="flex items-center justify-center gap-4">
+        <div className="md:w-1/2 text-center md:text-left">
+          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
+            Verify student status without exposing personal data
+          </h1>
+          <p className="text-lg text-gray-600 mb-10">
+            Users authenticate with their university, then share a yes/no proof.
+            No name, no date of birth, no student ID shared—just verified
+            status.
+          </p>
           <Button
             size="lg"
             onClick={() => navigate("/wallet")}
@@ -66,7 +71,7 @@ export function Landing() {
           <p className="text-center text-sm text-gray-500 mb-8">
             Potential partners and organizations we're built for
           </p>
-          <div className="grid grid-cols-5 gap-8 items-center">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-6 items-center">
             {partners.map((partner) => (
               <div
                 key={partner.name}
@@ -85,7 +90,7 @@ export function Landing() {
 
       {/* Benefits Section */}
       <div className="max-w-5xl mx-auto px-8 py-16">
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
           <div className="bg-white border border-gray-200 rounded-lg p-6 text-center hover:shadow-md transition-shadow">
             <div className="inline-flex items-center justify-center size-12 rounded-full bg-linear-to-br from-cyan-100 to-purple-100 mb-4">
               <Shield className="size-6 text-cyan-500" />

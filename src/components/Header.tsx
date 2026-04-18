@@ -17,6 +17,28 @@ export function Header() {
           <img src={logoImage} alt="ZeroVerify" className="h-20" />
         </Link>
 
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-6">
+          <Link
+            to="/"
+            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            Home
+          </Link>
+          <Link
+            to="/mission"
+            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            Mission
+          </Link>
+          <Link
+            to="/contact"
+            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            Contact Us
+          </Link>
+        </nav>
+
         <div className="flex items-center gap-4">
           <Link to="/wallet">
             <Button
@@ -29,9 +51,10 @@ export function Header() {
             </Button>
           </Link>
 
+          {/* Mobile hamburger */}
           <button
             onClick={toggleMenu}
-            className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+            className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
             aria-label="Toggle menu"
           >
             {isMenuOpen ? (
@@ -43,9 +66,9 @@ export function Header() {
         </div>
       </div>
 
-      {/* Dropdown Menu */}
+      {/* Mobile dropdown */}
       {isMenuOpen && (
-        <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
+        <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
           <nav className="max-w-7xl mx-auto px-8 py-4 flex flex-col gap-4">
             <Link
               to="/"

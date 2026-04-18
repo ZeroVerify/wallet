@@ -4,6 +4,7 @@ import { getOrCreateSalt } from "@lib/credential-store";
 import { useWallet } from "../context/useWallet";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
 import { LockKeyhole } from "lucide-react";
 
 export function PassphraseGate() {
@@ -49,13 +50,12 @@ export function PassphraseGate() {
             </div>
 
             <div className="space-y-4">
-              <input
+              <Input
                 type="password"
                 value={passphrase}
                 onChange={(e) => setPassphrase(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                 placeholder="Passphrase"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
               />
 
               {error && (
