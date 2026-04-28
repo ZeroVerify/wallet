@@ -19,6 +19,9 @@ import {
   Calendar,
   Building,
   AlertCircle,
+  User,
+  Mail,
+  GraduationCap,
 } from "lucide-react";
 
 type CredentialStatus =
@@ -79,14 +82,6 @@ function credentialLabel(type: string[]): string {
   return meaningful.length > 0
     ? meaningful.join(", ")
     : "Verifiable Credential";
-}
-
-function issuerLabel(issuer: string): string {
-  try {
-    return new URL(issuer).hostname;
-  } catch {
-    return issuer;
-  }
 }
 
 function StatusBadge({ status }: { status: CredentialStatus }) {
@@ -314,22 +309,38 @@ export function WalletHome() {
 
                       <div className="space-y-1 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
-                          <Building className="size-4" />
-                          <span>Issued by: {issuerLabel(cred.issuer)}</span>
+                          <User className="size-4 shrink-0" />
+                          <span>
+                            {cred.credentialSubject.given_name}{" "}
+                            {cred.credentialSubject.family_name}
+                          </span>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <Calendar className="size-4" />
+                          <Mail className="size-4 shrink-0" />
+                          <span>{cred.credentialSubject.email}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <GraduationCap className="size-4 shrink-0" />
                           <span>
-                            Issued on:{" "}
+                            Enrollment:{" "}
+                            {cred.credentialSubject.enrollment_status}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Calendar className="size-4 shrink-0" />
+                          <span>
+                            Issued:{" "}
                             {new Date(cred.issuanceDate).toLocaleDateString()}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <Calendar className="size-4" />
+                          <Calendar className="size-4 shrink-0" />
                           <span>
-                            Expires on:{" "}
+                            Expires:{" "}
                             {new Date(cred.expirationDate).toLocaleDateString()}
                           </span>
                         </div>
