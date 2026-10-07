@@ -132,6 +132,7 @@ export function generateProof(
           expires_at: Math.floor(
             new Date(credential.expirationDate).getTime() / 1000,
           ).toString(),
+          revocation_index: credential.credentialStatus.statusListIndex,
           Ax: ax,
           Ay: ay,
           R8x: r8x,
