@@ -8,9 +8,12 @@ export interface ProvingKeyError {
 
 const cache = new Map<string, ArrayBuffer>();
 
+// The circuit files are served with a 24 hour max-age. A browser that fetched the old circuit would keep using it for a
+// day after a new trusted setup and produce proofs with the wrong number of public signals. "no-cache" makes the
+// browser revalidate with the server (a cheap 304 when nothing changed), so a new circuit is picked up immediately.
 function fetchBinary(url: string): ResultAsync<ArrayBuffer, ProvingKeyError> {
   return ResultAsync.fromPromise(
-    fetch(url).then((res) => {
+    fetch(url, { cache: "no-cache" }).then((res) => {
       if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
       return res.arrayBuffer();
     }),
